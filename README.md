@@ -17,7 +17,16 @@ Cette documentation décrit une configuration avec un point d'accès wifi Mikrot
 > :warning:
 > La configuration finale ne permet pas d'utiliser la télévision par internet. Une configuration supplémentaire non décrite dans cette documentation est nécessaire.
 
-## Matériel
+## Sommaire
+
+* [1. Matériel](#hw)
+* [2. Configuration Optique](#optical)
+* [3. Configuration Mikrotik](#conf)
+  * [3.1. Prérequis pour les options DHCP](#dhcp)
+  * [3.2. Configuration du routeur Mikrotik RB5009](#router)
+  * [3.3. Configuration du point d'accès wifi Mikrotik cAP ax](#ap)
+
+## <a name="hw">1. Matériel</a>
 
 L'installation est composée des éléments suivants:
 
@@ -31,16 +40,21 @@ L'installation est composée des éléments suivants:
 
 ![Présentation](images/presentation.jpg)
 
-## Configuration Optique
+## <a name="optical">2. Configuration Optique</a>
 
 Après avoir un peu galéré à me connecter en SSH sur l'interface optique pour changer le Serial Number, je viens de découvrir qu'il est possible de carrément le spécifier dans le formulaire lors de la commande:
 
 ![Choisir custom](images/interface-optique-1.png)
 ![Remplir les paramètres](images/interface-optique-2.png)
 
-## Configuration Mikrotik
+## <a name="conf">3. Configuration Mikrotik</a>
 
-### Prérequis pour les options DHCP
+|Équipement|Dernière version RouterOS testée|
+|:---:|:---:|
+|RB5009|7.16.2|
+|cAP ax|7.17.2|
+
+### <a name="dhcp">3.1. Prérequis pour les options DHCP</a>
 
 Vous allez avoir besoin de convertir des valeurs ASCII en valeurs hexadécimales (et aussi inversement si vous êtes curieux), notamment pour vos identifiants de connexion, informations qui vous sont strictement confidentielles.
 
@@ -103,7 +117,7 @@ Rajouter des guillemets simples et doubles autours de la valeur :
 > :information_source:
 > Je ne vous recommande pas d'écrire les options en ASCII dans la configuration Mikrotik...
 
-### Configuration du routeur Mikrotik RB5009
+### <a name="router">3.2. Configuration du routeur Mikrotik RB5009</a>
 
 Dans la configuration ci-après, remplacer les valeurs suivantes:
 
@@ -143,6 +157,8 @@ $ echo "0x00000000000000000000001a0900000558010341010d$(ascii2hex "$login")3c12$
 ```
 
 Configuration finale sans les remplacements :
+
+<a name="router-conf"></a>
 
 ```none
 /interface bridge
@@ -315,7 +331,7 @@ set minimum-categories=3 minimum-password-length=12
 /user/remove default
 ```
 
-### Configuration du point d'accès wifi Mikrotik cAP ax
+### <a name="ap">3.3. Configuration du point d'accès wifi Mikrotik cAP ax</a>
 
 Dans la configuration ci-après, remplacer les valeurs suivantes:
 
@@ -327,6 +343,8 @@ Dans la configuration ci-après, remplacer les valeurs suivantes:
 
 > :information_source:
 > Cette configuration contient un cron journalier pour éteindre les 2 radios wifi la nuit: voir sections `/system script` et `/system scheduler` pour adapter les configurations.
+
+<a name="ap-conf"></a>
 
 ```none
 /interface bridge

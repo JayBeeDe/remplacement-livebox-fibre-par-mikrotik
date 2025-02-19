@@ -146,8 +146,8 @@ Configuration finale sans les remplacements :
 
 ```none
 /interface bridge
-add admin-mac=AA:BB:CC:DD:EE:FF auto-mac=no comment=defconf name=bridge-lan
-add name=bridge-wan protocol-mode=none
+add admin-mac=AA:BB:CC:DD:EE:FF auto-mac=no comment=defconf name=bridge-lan port-cost-mode=short
+add name=bridge-wan port-cost-mode=short protocol-mode=none
 /interface ethernet
 set [ find default-name=ether1 ] poe-out=off
 set [ find default-name=ether2 ] poe-out=off
@@ -156,27 +156,31 @@ set [ find default-name=ether4 ] poe-out=off
 set [ find default-name=ether5 ] disabled=yes poe-out=off
 set [ find default-name=ether6 ] disabled=yes poe-out=off
 set [ find default-name=ether7 ] disabled=yes poe-out=off
-set [ find default-name=sfp-sfpplus1 ] auto-negotiation=no speed=2.5Gbps
+set [ find default-name=sfp-sfpplus1 ] auto-negotiation=no speed=2.5G-baseT
 /interface vlan
 add interface=sfp-sfpplus1 name=vlan832-orange-internet vlan-id=832
 /interface list
 add comment=defconf name=WAN
 add comment=defconf name=LAN
-/interface wireless security-profiles
-set [ find default=yes ] supplicant-identity=MikroTik
 /ip dhcp-client option
 add code=60 name=vendorclass value=0x736167656d
 add code=77 name=userclass value=0x002b46535644534c5f6c697665626f782e496e7465726e65742e736f66746174686f6d652e4c697665626f7834
 add code=90 name=authsend value=0xXXXXXXXXXXX
+/ip ipsec proposal
+set [ find default=yes ] disabled=yes
 /ip pool
-add name=dhcp_pool1 ranges=192.168.88.3-192.168.88.254
+add name=dhcp_pool1 ranges=192.168.88.11-192.168.88.254
 /ip dhcp-server
 add address-pool=dhcp_pool1 interface=bridge-lan name=dhcpv4
+/ip smb users
+set [ find default=yes ] disabled=yes
 /ipv6 dhcp-client option
 add code=6 name=request value=0x000b001100170018
 add code=11 name=auth value=0xXXXXXXXXXXX
 add code=15 name=userclass value=0x002b46535644534c5f6c697665626f782e496e7465726e65742e736f66746174686f6d652e4c697665626f7834
 add code=16 name=classidentifier value=0x0000040e0005736167656d
+/ip smb
+set enabled=no
 /interface bridge filter
 add action=set-priority chain=output dst-port=547 ip-protocol=udp mac-protocol=ipv6 new-priority=6 out-interface=vlan832-orange-internet
 add action=set-priority chain=output dst-port=67 ip-protocol=udp mac-protocol=ip new-priority=6 out-interface=vlan832-orange-internet
@@ -190,6 +194,8 @@ add bridge=bridge-lan comment=defconf interface=ether7
 add bridge=bridge-lan comment=defconf interface=ether8
 add bridge=bridge-lan interface=ether1
 add bridge=bridge-wan interface=vlan832-orange-internet
+/ip firewall connection tracking
+set udp-timeout=10s
 /ip neighbor discovery-settings
 set discover-interface-list=LAN
 /ipv6 settings
@@ -208,12 +214,12 @@ add address=192.168.88.0/24 comment=defconf dns-server=192.168.88.1 gateway=192.
 /ip dns
 set allow-remote-requests=yes
 /ip dns static
-add address=192.168.88.1 comment=defconf name=router.lan
+add address=192.168.88.1 comment=defconf name=router.lan type=A
 /ip firewall filter
 add action=drop chain=input comment="drop invalid input" connection-state=invalid
 add action=drop chain=forward comment="drop invalid forward" connection-state=invalid
 add action=drop chain=forward comment="drop all from WAN not DSTNATed" connection-nat-state=!dstnat connection-state=new in-interface-list=!LAN
-add action=drop chain=forward comment="force LAN to use the router as DNS server" dst-port=53 in-interface-list=LAN log=yes protocol=udp
+add action=drop chain=forward comment="force LAN to use the router as DNS server" dst-address-list="" dst-port=53 in-interface-list=LAN log=yes protocol=udp
 add action=accept chain=input comment="accept established,related input" connection-state=established,related
 add action=accept chain=forward comment="accept established,related forward" connection-state=established,related
 add action=accept chain=input comment="accept outgoing traffic input" in-interface-list=LAN
@@ -230,6 +236,12 @@ add action=drop chain=forward comment="Drop everything else forward"
 /ip firewall nat
 add action=masquerade chain=srcnat comment="defconf: masquerade" disabled=yes ipsec-policy=out,none out-interface-list=WAN
 add action=masquerade chain=srcnat out-interface=bridge-wan src-address=192.168.88.0/24
+/ip hotspot service-port
+set ftp disabled=yes
+/ip ipsec policy
+set 0 disabled=yes
+/ip ipsec profile
+set [ find default=yes ] dpd-interval=2m dpd-maximum-failures=5
 /ip route
 add disabled=yes distance=1 dst-address=0.0.0.0/0 gateway=192.168.1.1 pref-src="" routing-table=main scope=30 suppress-hw-offload=no target-scope=10
 /ip service
@@ -241,6 +253,8 @@ set www-ssl address=192.168.88.0/24
 set api address=192.168.88.0/24 disabled=yes
 set winbox address=192.168.88.0/24
 set api-ssl address=192.168.88.0/24 disabled=yes
+/ip smb shares
+set [ find default=yes ] directory=/pub
 /ipv6 address
 add address=::1 from-pool=pool_FT_6 interface=bridge-lan
 /ipv6 dhcp-client
@@ -261,8 +275,8 @@ add action=drop chain=forward comment="drop invalid forward" connection-state=in
 add action=drop chain=forward comment="defconf: drop packets with bad src ipv6 forward" src-address-list=bad_ipv6
 add action=drop chain=forward comment="defconf: drop packets with bad dst ipv6 forward" dst-address-list=bad_ipv6
 add action=drop chain=forward comment="defconf: rfc4890 drop hop-limit=1" hop-limit=equal:1 protocol=icmpv6
-add action=accept chain=input comment="accept established,related input" connection-state=established,related
-add action=accept chain=forward comment="accept established,related forward" connection-state=established,related
+add action=accept chain=input comment="accept established,related,untracked input" connection-state=established,related,untracked
+add action=accept chain=forward comment="accept established,related,untracked forward" connection-state=established,related,untracked
 add action=accept chain=input comment="accept outgoing traffic input" in-interface-list=LAN
 add action=accept chain=forward comment="accept outgoing traffic forward" in-interface-list=LAN
 add action=accept chain=forward comment="defconf: accept ICMPv6" disabled=yes protocol=icmpv6
@@ -316,17 +330,21 @@ Dans la configuration ci-après, remplacer les valeurs suivantes:
 
 ```none
 /interface bridge
-add name=bridge1
+add name=bridge1 port-cost-mode=short
 /interface ethernet
 set [ find default-name=ether2 ] disabled=yes
-/interface wifiwave2
+/interface wifi
 set [ find default-name=wifi1 ] comment="5 GHz" configuration.country=France .mode=ap .ssid="my-ssid-5-ghz" security.authentication-types=wpa2-psk,wpa3-psk
 set [ find default-name=wifi2 ] comment="2.5 GHz" configuration.country=France .mode=ap .ssid="my-ssid" disabled=no security.authentication-types=wpa2-psk,wpa3-psk
+/ip smb users
+set [ find default=yes ] disabled=yes
 /interface bridge port
 add bridge=bridge1 interface=ether1
 add bridge=bridge1 interface=ether2
 add bridge=bridge1 interface=wifi1
 add bridge=bridge1 interface=wifi2
+/ip firewall connection tracking
+set udp-timeout=10s
 /ipv6 settings
 set disable-ipv6=yes
 /ip address
@@ -336,6 +354,8 @@ add address=192.168.88.2/24 interface=bridge1 network=192.168.88.0
 add dhcp-server=192.168.88.1 disabled=no interface=bridge1 name=relay1
 /ip dns
 set servers=192.168.88.1
+/ip ipsec profile
+set [ find default=yes ] dpd-interval=2m dpd-maximum-failures=5
 /ip route
 add disabled=no dst-address=0.0.0.0/0 gateway=192.168.88.1 routing-table=main suppress-hw-offload=no
 /ip service
@@ -347,6 +367,8 @@ set www-ssl address=192.168.88.0/24
 set api address=192.168.88.0/24 disabled=yes
 set winbox address=192.168.88.0/24
 set api-ssl address=192.168.88.0/24 disabled=yes
+/ip smb shares
+set [ find default=yes ] directory=/pub
 /system clock
 set time-zone-name=Europe/Paris
 /system identity
@@ -363,9 +385,9 @@ add dont-require-permissions=no name=disable-wifi owner=my-username policy=write
 add dont-require-permissions=no name=enable-wifi2 owner=my-username policy=write source="/interface enable wifi2"
 add dont-require-permissions=no name=enable-wifi1 owner=my-username policy=write source="/interface enable wifi1"
 /system scheduler
-add interval=1d name="disable wifi" on-event=disable-wifi policy=write start-date=jun/14/2023 start-time=00:30:00
-add disabled=yes interval=1d name="enable wifi 1" on-event=enable-wifi1 policy=write start-date=jun/14/2023 start-time=07:15:00
-add interval=1d name="enable wifi 2" on-event=enable-wifi2 policy=write start-date=jun/14/2023 start-time=07:15:00
+add interval=1d name="disable wifi" on-event=disable-wifi policy=write start-date=2023-06-14 start-time=00:30:00
+add disabled=yes interval=1d name="enable wifi 1" on-event=enable-wifi1 policy=write start-date=2023-06-14 start-time=07:15:00
+add interval=1d name="enable wifi 2" on-event=enable-wifi2 policy=write start-date=2023-06-14 start-time=07:45:00
 add disabled=yes name="enable wifi 1 at boot" on-event=enable-wifi1 policy=write start-time=startup
 add name="enable wifi 2 at boot" on-event=enable-wifi2 policy=write start-time=startup
 /user settings

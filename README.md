@@ -51,7 +51,7 @@ Après avoir un peu galéré à me connecter en SSH sur l'interface optique pour
 
 |Équipement|Dernière version RouterOS testée|
 |:---:|:---:|
-|RB5009|7.16.2|
+|RB5009|7.17.2|
 |cAP ax|7.17.2|
 
 ### <a name="dhcp">3.1. Prérequis pour les options DHCP</a>
@@ -274,7 +274,7 @@ set [ find default=yes ] directory=/pub
 /ipv6 address
 add address=::1 from-pool=pool_FT_6 interface=bridge-lan
 /ipv6 dhcp-client
-add add-default-route=yes dhcp-options=auth,classidentifier,userclass dhcp-options=auth,classidentifier,userclass interface=vlan832-orange-internet pool-name=pool_FT_6 request=prefix
+add dhcp-options=auth,classidentifier,userclass dhcp-options=auth,classidentifier,userclass interface=vlan832-orange-internet pool-name=pool_FT_6 request=prefix
 /ipv6 firewall address-list
 add address=::/128 comment="defconf: unspecified address" list=bad_ipv6
 add address=::1/128 comment="defconf: lo" list=bad_ipv6

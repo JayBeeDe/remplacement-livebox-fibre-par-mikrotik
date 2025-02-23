@@ -127,8 +127,6 @@ Dans la configuration ci-après, remplacer les valeurs suivantes:
 
 - `my-username` et `my-password` pour l'utilisateur système
 
-- `AA:BB:CC:DD:EE:FF` par l'adresse MAC de l'interface principale (en général ether2, sur ce modèle c'est ether2 systématiquement)
-
 Vous pouvez obtenir directement l'adresse mac de cette interface ether2 à l'aide de la commande suivante:
 
 ```none
@@ -162,7 +160,8 @@ Configuration finale sans les remplacements :
 
 ```none
 /interface bridge
-add admin-mac=AA:BB:CC:DD:EE:FF auto-mac=no comment=defconf name=bridge-lan port-cost-mode=short
+set [ find default-name=bridge ] name=bridge-lan
+# add admin-mac=AA:BB:CC:DD:EE:FF auto-mac=no comment=defconf name=bridge-lan
 add name=bridge-wan port-cost-mode=short protocol-mode=none
 /interface ethernet
 set [ find default-name=ether1 ] poe-out=off
@@ -185,9 +184,10 @@ add code=90 name=authsend value=0xXXXXXXXXXXX
 /ip ipsec proposal
 set [ find default=yes ] disabled=yes
 /ip pool
-add name=dhcp_pool1 ranges=192.168.88.11-192.168.88.254
+set [ find default-name=default-dhcp ] ranges=192.168.88.11-192.168.88.254
+# add name=default-dhcp ranges=192.168.88.11-192.168.88.254
 /ip dhcp-server
-add address-pool=dhcp_pool1 interface=bridge-lan name=dhcpv4
+add address-pool=default-dhcp interface=bridge-lan name=defconf
 /ip smb users
 set [ find default=yes ] disabled=yes
 /ipv6 dhcp-client option
@@ -208,6 +208,7 @@ add bridge=bridge-lan comment=defconf interface=ether5
 add bridge=bridge-lan comment=defconf interface=ether6
 add bridge=bridge-lan comment=defconf interface=ether7
 add bridge=bridge-lan comment=defconf interface=ether8
+remove [ find interface=sfp-sfpplus1 ]
 add bridge=bridge-lan interface=ether1
 add bridge=bridge-wan interface=vlan832-orange-internet
 /ip firewall connection tracking
@@ -218,12 +219,14 @@ set discover-interface-list=LAN
 set accept-router-advertisements=yes
 /interface list member
 add comment=defconf interface=bridge-lan list=LAN
+remove [ find interface=ether1 ]
 add interface=bridge-wan list=WAN
-add interface=sfp-sfpplus1 list=WAN
+remove [ find interface=sfp-sfpplus1 ]
 /ip address
 add address=192.168.88.1/24 comment=defconf interface=bridge-lan network=192.168.88.0
 /ip dhcp-client
-add disabled=yes interface=ether1
+set [ find interface=ether1 ] disabled=yes
+# add disabled=yes interface=ether1
 add dhcp-options=vendorclass,userclass,authsend,clientid interface=bridge-wan
 /ip dhcp-server network
 add address=192.168.88.0/24 comment=defconf dns-server=192.168.88.1 gateway=192.168.88.1
@@ -259,7 +262,6 @@ set 0 disabled=yes
 /ip ipsec profile
 set [ find default=yes ] dpd-interval=2m dpd-maximum-failures=5
 /ip route
-add disabled=yes distance=1 dst-address=0.0.0.0/0 gateway=192.168.1.1 pref-src="" routing-table=main scope=30 suppress-hw-offload=no target-scope=10
 /ip service
 set telnet address=192.168.88.0/24 disabled=yes
 set ftp address=192.168.88.0/24 disabled=yes
@@ -328,7 +330,7 @@ set allowed-interface-list=LAN
 /user settings
 set minimum-categories=3 minimum-password-length=12
 /user/add name=my-username group=full address=192.168.88.0/24 password="my-password"
-/user/remove default
+/user/remove admin
 ```
 
 ### <a name="ap">3.3. Configuration du point d'accès wifi Mikrotik cAP ax</a>
@@ -348,7 +350,8 @@ Dans la configuration ci-après, remplacer les valeurs suivantes:
 
 ```none
 /interface bridge
-add name=bridge1 port-cost-mode=short
+set [ find default-name=bridge ] name=bridge-lan port-cost-mode=long
+# add name=bridge-lan
 /interface ethernet
 set [ find default-name=ether2 ] disabled=yes
 /interface wifi
@@ -357,19 +360,19 @@ set [ find default-name=wifi2 ] comment="2.5 GHz" configuration.country=France .
 /ip smb users
 set [ find default=yes ] disabled=yes
 /interface bridge port
-add bridge=bridge1 interface=ether1
-add bridge=bridge1 interface=ether2
-add bridge=bridge1 interface=wifi1
-add bridge=bridge1 interface=wifi2
+add bridge=bridge-lan interface=ether1
+add bridge=bridge-lan interface=ether2
+add bridge=bridge-lan interface=wifi1
+add bridge=bridge-lan interface=wifi2
 /ip firewall connection tracking
 set udp-timeout=10s
 /ipv6 settings
 set disable-ipv6=yes
 /ip address
 add address=192.168.88.1/24 comment="default configuration" disabled=yes interface=ether1 network=192.168.88.0
-add address=192.168.88.2/24 interface=bridge1 network=192.168.88.0
+add address=192.168.88.2/24 interface=bridge-lan network=192.168.88.0
 /ip dhcp-relay
-add dhcp-server=192.168.88.1 disabled=no interface=bridge1 name=relay1
+add dhcp-server=192.168.88.1 disabled=no interface=bridge-lan name=relay1
 /ip dns
 set servers=192.168.88.1
 /ip ipsec profile
@@ -411,5 +414,5 @@ add name="enable wifi 2 at boot" on-event=enable-wifi2 policy=write start-time=s
 /user settings
 set minimum-categories=3 minimum-password-length=12
 /user/add name=my-username group=full address=192.168.88.0/24 password="my-password"
-/user/remove default
+/user/remove admin
 ```
